@@ -1,33 +1,38 @@
-
 import sys
 import subprocess
+import os
+import time
 
-# INSTALAR DEPENDENCIAS SI FALTAN
+# --------------------------------------------------
+# INSTALAR DEPENDENCIAS SI ES NECESARIO
+# --------------------------------------------------
+
 try:
     import pygame
     import cv2
-
-    print("Ya tienes las dependencias instaladas")
+    print("Las dependencias ya están instaladas.")
 
 except ImportError:
-    print("Instalando las dependencias del juego...")
-
     subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "pygame"
-    ])
-
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "opencv-python"
+        sys.executable, "-m", "pip", "install",
+        "pygame", "opencv-python"
     ])
 
     import pygame
     import cv2
 
 
-pygame.init()
-pygame.mixer.init()
+# --------------------------------------------------
+# INICIALIZAR PYGAME
+# --------------------------------------------------
 
-# CONFIGURACION DE LA VENTANA
+pygame.init()
+
+try:
+    pygame.mixer.init()
+except pygame.error:
+    print("No se ha podido inicializar el audio.")
+
 ancho = 1000
 alto = 650
 
@@ -36,486 +41,1318 @@ pygame.display.set_caption("BATTLESHIP")
 
 reloj = pygame.time.Clock()
 
+
+# --------------------------------------------------
 # COLORES
+# --------------------------------------------------
+
 blanco = (255, 255, 255)
 negro = (0, 0, 0)
 negro_grisaceo = (15, 15, 15)
 verde_oscuro = (20, 83, 45)
 verde_claro = (34, 120, 60)
 rojo = (180, 30, 30)
-gris = (120, 120, 120)
+gris = (100, 100, 100)
+gris_claro = (190, 190, 190)
 
+
+# --------------------------------------------------
+# RUTAS DE LOS RECURSOS
+# --------------------------------------------------
+
+RUTA_IMAGENES = "Recursos/Imagenes"
+RUTA_VIDEOS = "Recursos/Videos"
+RUTA_SONIDOS = "Recursos/Sonidos"
+
+
+# --------------------------------------------------
 # FUENTES
-fuente = pygame.font.SysFont("arial", 28, bold=True)
-fuente_pequena = pygame.font.SysFont("arial", 20)
-fuente_titulo = pygame.font.SysFont("arial", 38, bold=True)
+# --------------------------------------------------
 
-# INFORMACION PERSONALIZABLE
-informacion_partida = (
-    "Prepara tu flota para la batalla.\n"
-    "Introduce el nombre de tu rival y decide\n"
-    "quien realizara el primer ataque."
+fuente_titulo = pygame.font.SysFont("arial", 52, bold=True)
+fuente_grande = pygame.font.SysFont("arial", 28, bold=True)
+fuente_normal = pygame.font.SysFont("arial", 22)
+fuente_pequena = pygame.font.SysFont("arial", 17)
+
+
+# --------------------------------------------------
+# CARGAR IMÁGENES DE LOS BARCOS
+# --------------------------------------------------
+
+def cargar_imagen(ruta):
+    try:
+        imagen = pygame.image.load(ruta).convert_alpha()
+        return imagen
+
+    except (pygame.error, FileNotFoundError):
+        print(f"No se ha podido cargar la imagen: {ruta}")
+        return None
+
+
+imagen_barcos = {
+    1: cargar_imagen(
+        os.path.join(RUTA_IMAGENES, "barco-1.png")
+    ),
+
+    2: cargar_imagen(
+        os.path.join(RUTA_IMAGENES, "barco-2.png")
+    ),
+
+    3: cargar_imagen(
+        os.path.join(RUTA_IMAGENES, "barco-3.png")
+    ),
+
+    4: cargar_imagen(
+        os.path.join(RUTA_IMAGENES, "barco-4.png")
+    )
+}
+
+
+# Imagen del fondo de la pantalla de juego
+imagen_fondo_juego = cargar_imagen(
+    os.path.join(RUTA_IMAGENES, "juego.png")
 )
 
-# VIDEO INICIAL
-video = cv2.VideoCapture("Recursos/Videos/Inicio.mp4")
-
-if not video.isOpened():
-    pygame.quit()
-    raise FileNotFoundError(
-        "No se ha podido abrir Recursos/Videos/Inicio.mp4"
+if imagen_fondo_juego is not None:
+    imagen_fondo_juego = pygame.transform.scale(
+        imagen_fondo_juego,
+        (ancho, alto)
     )
 
-fps_video = video.get(cv2.CAP_PROP_FPS)
+imagen_fondo_colocacion = cargar_imagen(
+    os.path.join(RUTA_IMAGENES, "posicionar_barcos.png")
+)
 
-if fps_video <= 0 or fps_video > 120:
-    fps_video = 30
-
-# VIDEO DE CARGA
-video_carga = cv2.VideoCapture("Recursos/Videos/cargando.mp4")
-
-if not video_carga.isOpened():
-    video.release()
-    pygame.quit()
-    raise FileNotFoundError(
-        "No se ha podido abrir Recursos/Videos/cargando.mp4"
+if imagen_fondo_colocacion is not None:
+    imagen_fondo_colocacion = pygame.transform.scale(
+        imagen_fondo_colocacion,
+        (ancho, alto)
     )
 
-fps_carga = video_carga.get(cv2.CAP_PROP_FPS)
 
-if fps_carga <= 0 or fps_carga > 120:
-    fps_carga = 30
+# --------------------------------------------------
+# AUDIO
+# --------------------------------------------------
 
-# IMAGEN DEL JUEGO
-fondo_juego = pygame.image.load(
-    "Recursos/Imagenes/juego.png"
-)
+try:
+    sonido_barco = pygame.mixer.Sound(
+        os.path.join(RUTA_SONIDOS, "barco.mp3")
+    )
+    sonido_barco.set_volume(0.7)
 
-fondo_juego = pygame.transform.scale(
-    fondo_juego, (ancho, alto)
-)
+except pygame.error as error:
+    print("No se ha podido cargar el sonido del barco:", error)
+    sonido_barco = None
 
-# SONIDOS
-pygame.mixer.music.load("Recursos/Sonidos/inicio.mp3")
-pygame.mixer.music.set_volume(0.35)
-pygame.mixer.music.play(-1)
+try:
+    pygame.mixer.music.load(
+        os.path.join(RUTA_SONIDOS, "inicio.mp3")
+    )
+    pygame.mixer.music.set_volume(0.35)
 
-sonido_boton = pygame.mixer.Sound(
-    "Recursos/Sonidos/Boton_inicio.mp3"
-)
-sonido_boton.set_volume(0.7)
+    sonido_boton = pygame.mixer.Sound(
+        os.path.join(RUTA_SONIDOS, "Boton_inicio.mp3")
+    )
+    sonido_boton.set_volume(0.7)
 
-sonido_barco = pygame.mixer.Sound(
-    "Recursos/Sonidos/Boton_inicio.mp3"
-)
-sonido_barco.set_volume(0.7)
+except pygame.error as error:
+    print("No se han podido cargar algunos sonidos:", error)
+    sonido_boton = None
 
-# BOTONES DEL MENU PRINCIPAL
-boton_iniciar = pygame.Rect(350, 400, 300, 65)
-boton_salir = pygame.Rect(350, 490, 300, 65)
 
-# ELEMENTOS DEL MENU DE CONFIGURACION
-campo_nombre = pygame.Rect(300, 170, 400, 48)
+# --------------------------------------------------
+# FUNCIONES GENERALES
+# --------------------------------------------------
 
-boton_tu = pygame.Rect(300, 285, 180, 50)
-boton_enemigo = pygame.Rect(520, 285, 180, 50)
+def dibujar_texto(texto, fuente, color, x, y, centrar=False):
+    superficie = fuente.render(str(texto), True, color)
 
-boton_volver = pygame.Rect(200, 535, 250, 60)
-boton_aceptar = pygame.Rect(550, 535, 250, 60)
+    if centrar:
+        rectangulo = superficie.get_rect(center=(x, y))
+    else:
+        rectangulo = superficie.get_rect(topleft=(x, y))
 
-# ESTADO DEL JUEGO
-ejecutando = True
-pantalla_actual = "menu"
+    pantalla.blit(superficie, rectangulo)
 
-# CONFIGURACION DE LA PARTIDA
-nombre_enemigo = ""
-primer_atacante = "Tu"
-campo_activo = False
 
-# TIEMPOS DE CARGA
-tiempo_inicio_carga = 0
-tiempo_inicio_video_carga = 0
-video_cambiado = False
+def reproducir_sonido_boton():
+    if sonido_boton is not None:
+        sonido_boton.play()
 
-video_actual = video
-fps_actual = fps_video
 
-# BUCLE PRINCIPAL
-while ejecutando:
+def dibujar_boton(rectangulo, texto, activo=True):
+    raton = pygame.mouse.get_pos()
 
-    # EVENTOS
-    for evento in pygame.event.get():
+    if not activo:
+        color = gris
+    elif rectangulo.collidepoint(raton):
+        color = verde_claro
+    else:
+        color = verde_oscuro
 
-        if evento.type == pygame.QUIT:
-            ejecutando = False
+    pygame.draw.rect(
+        pantalla,
+        color,
+        rectangulo,
+        border_radius=10
+    )
 
-        # ESCRIBIR EN EL CAMPO DEL NOMBRE
-        if pantalla_actual == "configuracion":
+    pygame.draw.rect(
+        pantalla,
+        blanco,
+        rectangulo,
+        width=2,
+        border_radius=10
+    )
 
-            if evento.type == pygame.MOUSEBUTTONDOWN:
+    dibujar_texto(
+        texto,
+        fuente_normal,
+        blanco,
+        rectangulo.centerx,
+        rectangulo.centery,
+        centrar=True
+    )
 
-                if evento.button == 1:
 
-                    campo_activo = campo_nombre.collidepoint(
-                        evento.pos
-                    )
+def dibujar_video(captura):
+    correcto, fotograma = captura.read()
 
-                    # ELEGIR QUIEN ATACA PRIMERO
-                    if boton_tu.collidepoint(evento.pos):
-                        primer_atacante = "Tu"
-                        sonido_boton.play()
+    if not correcto:
+        captura.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        correcto, fotograma = captura.read()
 
-                    elif boton_enemigo.collidepoint(evento.pos):
-                        primer_atacante = "Enemigo"
-                        sonido_boton.play()
+    if correcto:
+        fotograma = cv2.cvtColor(
+            fotograma,
+            cv2.COLOR_BGR2RGB
+        )
 
-                    # VOLVER AL MENU PRINCIPAL
-                    elif boton_volver.collidepoint(evento.pos):
-                        sonido_boton.play()
-                        pantalla_actual = "menu"
+        fotograma = cv2.resize(
+            fotograma,
+            (ancho, alto)
+        )
 
-                    # ACEPTAR LA CONFIGURACION
-                    elif boton_aceptar.collidepoint(evento.pos):
+        superficie = pygame.surfarray.make_surface(
+            fotograma.swapaxes(0, 1)
+        )
 
-                        if nombre_enemigo.strip() == "":
-                            nombre_enemigo = "Enemigo"
+        pantalla.blit(superficie, (0, 0))
 
-                        sonido_boton.play()
-                        pygame.mixer.music.stop()
-                        sonido_barco.play()
 
-                        tiempo_inicio_carga = (
-                            pygame.time.get_ticks()
-                        )
+def abrir_video(ruta):
+    captura = cv2.VideoCapture(ruta)
 
-                        video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        video_actual = video
-                        fps_actual = fps_video
+    if not captura.isOpened():
+        print(f"No se ha podido abrir el vídeo: {ruta}")
+        captura.release()
+        return None
 
-                        video_cambiado = False
-                        pantalla_actual = "carga"
+    return captura
 
-            # ESCRIBIR Y BORRAR TEXTO
-            if evento.type == pygame.KEYDOWN and campo_activo:
 
-                if evento.key == pygame.K_BACKSPACE:
-                    nombre_enemigo = nombre_enemigo[:-1]
+def reproducir_transicion(ruta, duracion):
+    captura = abrir_video(ruta)
 
-                elif evento.key == pygame.K_RETURN:
-                    campo_activo = False
+    if captura is None:
+        return
 
-                elif evento.unicode.isprintable():
-                    if len(nombre_enemigo) < 25:
-                        nombre_enemigo += evento.unicode
+    inicio = time.time()
 
-        # MENU PRINCIPAL
-        elif pantalla_actual == "menu":
+    while time.time() - inicio < duracion:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                captura.release()
+                pygame.quit()
+                sys.exit()
+
+        dibujar_video(captura)
+        pygame.display.flip()
+        reloj.tick(30)
+
+    captura.release()
+
+
+# --------------------------------------------------
+# PANTALLA DE MENÚ
+# --------------------------------------------------
+
+boton_iniciar = pygame.Rect(350, 370, 300, 65)
+boton_salir = pygame.Rect(350, 460, 300, 65)
+
+
+def pantalla_menu():
+    captura = abrir_video(
+        os.path.join(RUTA_VIDEOS, "Inicio.mp4")
+    )
+
+    if captura is None:
+        fondo = pygame.Surface((ancho, alto))
+        fondo.fill(negro_grisaceo)
+    else:
+        fondo = None
+
+    try:
+        pygame.mixer.music.play(-1)
+    except pygame.error:
+        pass
+
+    while True:
+        if captura is not None:
+            dibujar_video(captura)
+        else:
+            pantalla.blit(fondo, (0, 0))
+        dibujar_boton(boton_iniciar, "Iniciar juego")
+        dibujar_boton(boton_salir, "Salir")
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                if captura is not None:
+                    captura.release()
+
+                pygame.quit()
+                sys.exit()
 
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:
 
                     if boton_iniciar.collidepoint(evento.pos):
-                        sonido_boton.play()
-                        pantalla_actual = "configuracion"
+                        reproducir_sonido_boton()
+
+                        if captura is not None:
+                            captura.release()
+
+                        pygame.mixer.music.stop()
+                        pantalla_configuracion()
+                        return
 
                     elif boton_salir.collidepoint(evento.pos):
-                        ejecutando = False
+                        pygame.quit()
+                        sys.exit()
 
-    # -------------------------------------
-    # PANTALLA: MENU PRINCIPAL
-    # -------------------------------------
-    if pantalla_actual == "menu":
+        reloj.tick(60)
 
-        ret, fotograma = video.read()
 
-        if not ret:
-            video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ret, fotograma = video.read()
+# --------------------------------------------------
+# CONFIGURACIÓN DEL ENEMIGO
+# --------------------------------------------------
 
-        if ret:
-            fotograma = cv2.cvtColor(
-                fotograma, cv2.COLOR_BGR2RGB
-            )
+nombre_enemigo = ""
+primer_atacante = "Tu"
 
-            fotograma = cv2.resize(
-                fotograma, (ancho, alto)
-            )
 
-            fondo_video = pygame.surfarray.make_surface(
-                fotograma.swapaxes(0, 1)
-            )
+def pantalla_configuracion():
+    global nombre_enemigo, primer_atacante
 
-            pantalla.blit(fondo_video, (0, 0))
+    campo_nombre = pygame.Rect(300, 220, 400, 45)
 
-        raton = pygame.mouse.get_pos()
+    boton_tu = pygame.Rect(300, 330, 180, 50)
+    boton_enemigo = pygame.Rect(520, 330, 180, 50)
 
-        # BOTON INICIAR
-        color_iniciar = (
-            verde_claro
-            if boton_iniciar.collidepoint(raton)
-            else verde_oscuro
-        )
+    boton_aceptar = pygame.Rect(350, 450, 300, 60)
 
-        pygame.draw.rect(
-            pantalla, color_iniciar, boton_iniciar,
-            border_radius=12
-        )
+    nombre_enemigo = ""
+    primer_atacante = "Tu"
 
-        texto = fuente.render(
-            "INICIAR JUEGO", True, blanco
-        )
+    activo_nombre = True
+    mensaje_error = ""
 
-        pantalla.blit(
-            texto, texto.get_rect(center=boton_iniciar.center)
-        )
-
-        # BOTON SALIR
-        color_salir = (
-            negro_grisaceo
-            if boton_salir.collidepoint(raton)
-            else negro
-        )
-
-        pygame.draw.rect(
-            pantalla, color_salir, boton_salir,
-            border_radius=12
-        )
-
-        texto = fuente.render("SALIR", True, rojo)
-
-        pantalla.blit(
-            texto, texto.get_rect(center=boton_salir.center)
-        )
-
-    # -------------------------------------
-    # PANTALLA: CONFIGURACION
-    # -------------------------------------
-    elif pantalla_actual == "configuracion":
-
+    while True:
         pantalla.fill(negro_grisaceo)
 
-        # TITULO
-        titulo = fuente_titulo.render(
-            "CONFIGURAR PARTIDA", True, blanco
+        dibujar_texto(
+            "CONFIGURACIÓN",
+            fuente_titulo,
+            blanco,
+            ancho // 2,
+            100,
+            centrar=True
         )
 
-        pantalla.blit(
-            titulo,
-            titulo.get_rect(center=(ancho // 2, 65))
-        )
-
-        # NOMBRE DEL ENEMIGO
-        etiqueta = fuente_pequena.render(
-            "Nombre del enemigo:", True, blanco
-        )
-
-        pantalla.blit(etiqueta, (300, 135))
-
-        color_campo = (
-            verde_claro if campo_activo else gris
+        dibujar_texto(
+            "Nombre del enemigo:",
+            fuente_normal,
+            blanco,
+            campo_nombre.x,
+            campo_nombre.y - 35
         )
 
         pygame.draw.rect(
-            pantalla, color_campo, campo_nombre,
-            width=2, border_radius=6
-        )
-
-        texto_nombre = fuente_pequena.render(
-            nombre_enemigo, True, blanco
-        )
-
-        pantalla.blit(
-            texto_nombre,
-            (campo_nombre.x + 10, campo_nombre.y + 12)
-        )
-
-        # QUIEN ATACA PRIMERO
-        etiqueta = fuente_pequena.render(
-            "¿Quien ataca primero?", True, blanco
-        )
-
-        pantalla.blit(etiqueta, (300, 245))
-
-        # BOTON TU
-        color_tu = (
-            verde_claro
-            if primer_atacante == "Tu"
-            else negro
+            pantalla,
+            blanco,
+            campo_nombre,
+            border_radius=5
         )
 
         pygame.draw.rect(
-            pantalla, color_tu, boton_tu,
-            border_radius=8
+            pantalla,
+            verde_claro if activo_nombre else gris,
+            campo_nombre,
+            width=2,
+            border_radius=5
         )
 
-        texto_tu = fuente_pequena.render(
-            "TU", True, blanco
+        dibujar_texto(
+            nombre_enemigo,
+            fuente_normal,
+            negro,
+            campo_nombre.x + 10,
+            campo_nombre.y + 8
         )
 
-        pantalla.blit(
-            texto_tu,
-            texto_tu.get_rect(center=boton_tu.center)
+        dibujar_texto(
+            "¿Quién ataca primero?",
+            fuente_normal,
+            blanco,
+            ancho // 2,
+            290,
+            centrar=True
         )
 
-        # BOTON ENEMIGO
-        color_enemigo = (
-            verde_claro
-            if primer_atacante == "Enemigo"
-            else negro
+        dibujar_boton(
+            boton_tu,
+            "Tú",
+            activo=(primer_atacante == "Tu")
         )
 
-        pygame.draw.rect(
-            pantalla, color_enemigo, boton_enemigo,
-            border_radius=8
+        dibujar_boton(
+            boton_enemigo,
+            "Enemigo",
+            activo=(primer_atacante == "Enemigo")
         )
 
-        texto_enemigo = fuente_pequena.render(
-            "ENEMIGO", True, blanco
-        )
+        dibujar_boton(boton_aceptar, "Aceptar")
 
-        pantalla.blit(
-            texto_enemigo,
-            texto_enemigo.get_rect(center=boton_enemigo.center)
-        )
-
-        # INFORMACION PERSONALIZABLE
-        pygame.draw.rect(
-            pantalla, negro, (200, 365, 600, 135),
-            border_radius=8
-        )
-
-        lineas = informacion_partida.split("\n")
-
-        for i, linea in enumerate(lineas):
-            texto_info = fuente_pequena.render(
-                linea, True, blanco
+        if mensaje_error:
+            dibujar_texto(
+                mensaje_error,
+                fuente_pequena,
+                rojo,
+                ancho // 2,
+                535,
+                centrar=True
             )
 
-            pantalla.blit(
-                texto_info,
-                texto_info.get_rect(
-                    center=(ancho // 2, 390 + i * 28)
-                )
-            )
+        pygame.display.flip()
 
-        raton = pygame.mouse.get_pos()
+        for evento in pygame.event.get():
 
-        # BOTON VOLVER
-        color_volver = (
-            rojo if boton_volver.collidepoint(raton)
-            else (120, 25, 25)
-        )
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        pygame.draw.rect(
-            pantalla, color_volver, boton_volver,
-            border_radius=10
-        )
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:
 
-        texto_volver = fuente_pequena.render(
-            "VOLVER", True, blanco
-        )
+                    activo_nombre = campo_nombre.collidepoint(
+                        evento.pos
+                    )
 
-        pantalla.blit(
-            texto_volver,
-            texto_volver.get_rect(center=boton_volver.center)
-        )
+                    if boton_tu.collidepoint(evento.pos):
+                        primer_atacante = "Tu"
+                        reproducir_sonido_boton()
 
-        # BOTON ACEPTAR
-        color_aceptar = (
-            verde_claro
-            if boton_aceptar.collidepoint(raton)
-            else verde_oscuro
-        )
+                    elif boton_enemigo.collidepoint(evento.pos):
+                        primer_atacante = "Enemigo"
+                        reproducir_sonido_boton()
 
-        pygame.draw.rect(
-            pantalla, color_aceptar, boton_aceptar,
-            border_radius=10
-        )
+                    elif boton_aceptar.collidepoint(evento.pos):
+                        if nombre_enemigo.strip() == "":
+                            mensaje_error = (
+                                "Escribe el nombre del enemigo."
+                            )
+                        else:
+                            reproducir_sonido_boton()
 
-        texto_aceptar = fuente_pequena.render(
-            "ACEPTAR Y JUGAR", True, blanco
-        )
+                            # Transición: vídeo inicial durante 3 s.
+                            reproducir_transicion(
+                                os.path.join(
+                                    RUTA_VIDEOS, "Inicio.mp4"
+                                ),
+                                3
+                            )
 
-        pantalla.blit(
-            texto_aceptar,
-            texto_aceptar.get_rect(center=boton_aceptar.center)
-        )
+                            # Después, vídeo de carga durante 6 s.
+                            reproducir_transicion(
+                                os.path.join(
+                                    RUTA_VIDEOS, "cargando.mp4"
+                                ),
+                                6
+                            )
 
-    # -------------------------------------
-    # PANTALLA: CARGA
-    # -------------------------------------
-    elif pantalla_actual == "carga":
+                            pantalla_juego()
+                            return
 
-        tiempo_actual = pygame.time.get_ticks()
+            if evento.type == pygame.KEYDOWN and activo_nombre:
 
-        tiempo_transcurrido = (
-            tiempo_actual - tiempo_inicio_carga
-        )
+                if evento.key == pygame.K_RETURN:
+                    activo_nombre = False
 
-        # CAMBIAR AL VIDEO DE CARGA A LOS 3 SEGUNDOS
-        if tiempo_transcurrido >= 3000 and not video_cambiado:
+                elif evento.key == pygame.K_BACKSPACE:
+                    nombre_enemigo = nombre_enemigo[:-1]
 
-            video_carga.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                elif len(nombre_enemigo) < 20:
+                    if evento.unicode.isprintable():
+                        nombre_enemigo += evento.unicode
 
-            video_actual = video_carga
-            fps_actual = fps_carga
+        reloj.tick(60)
 
-            tiempo_inicio_video_carga = tiempo_actual
-            video_cambiado = True
 
-        # MOSTRAR EL VIDEO ACTUAL
-        ret, fotograma = video_actual.read()
+# --------------------------------------------------
+# TABLERO Y BARCOS
+# --------------------------------------------------
 
-        if not ret:
-            video_actual.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ret, fotograma = video_actual.read()
+FILAS = 10
+COLUMNAS = 10
 
-        if ret:
-            fotograma = cv2.cvtColor(
-                fotograma, cv2.COLOR_BGR2RGB
-            )
+TAM_CELDA = 50
 
-            fotograma = cv2.resize(
-                fotograma, (ancho, alto)
-            )
+TABLERO_X = 450
+TABLERO_Y = 75
 
-            fondo_video = pygame.surfarray.make_surface(
-                fotograma.swapaxes(0, 1)
-            )
+# Cada barco colocado se guarda en esta lista.
+barcos_colocados = []
 
-            pantalla.blit(fondo_video, (0, 0))
+# Casillas ocupadas: se guardan como parejas (fila, columna).
+casillas_ocupadas = set()
 
-        # CARGA DURANTE 6 SEGUNDOS DESDE EL CAMBIO DE VIDEO
-        if (
-            video_cambiado
-            and tiempo_actual - tiempo_inicio_video_carga >= 6000
+# Longitud seleccionada por el usuario.
+longitud_seleccionada = 2
+
+# Dirección a la que apunta el morro.
+orientacion_seleccionada = "N"
+
+# Campos de fila y columna.
+texto_fila = "1"
+texto_columna = "1"
+
+campo_fila = pygame.Rect(35, 385, 75, 38)
+campo_columna = pygame.Rect(145, 385, 75, 38)
+
+campo_activo = "fila"
+
+
+# --------------------------------------------------
+# BOTONES DEL TABLERO
+# --------------------------------------------------
+
+# Selección de longitud: un poco más abajo.
+boton_longitud_1 = pygame.Rect(30, 200, 70, 42)
+boton_longitud_2 = pygame.Rect(110, 200, 70, 42)
+boton_longitud_3 = pygame.Rect(190, 200, 70, 42)
+boton_longitud_4 = pygame.Rect(30, 255, 70, 42)
+
+# Orientación del morro.
+boton_norte = pygame.Rect(115, 255, 65, 42)
+boton_sur = pygame.Rect(190, 255, 65, 42)
+boton_este = pygame.Rect(115, 310, 65, 42)
+boton_oeste = pygame.Rect(190, 310, 65, 42)
+
+# Botones de acción, más arriba.
+boton_colocar = pygame.Rect(30, 455, 230, 48)
+boton_limpiar = pygame.Rect(30, 515, 230, 40)
+
+
+# --------------------------------------------------
+# COLOCACIÓN Y ORIENTACIÓN DE LOS BARCOS
+# --------------------------------------------------
+
+def obtener_casillas_barco(fila, columna, longitud, orientacion):
+    """
+    La fila y la columna indican la casilla donde está el morro.
+
+    N: el morro apunta al norte.
+       El resto del barco va hacia las filas inferiores.
+
+    S: el morro apunta al sur.
+       El resto del barco va hacia las filas superiores.
+
+    E: el morro apunta al este.
+       El resto del barco va hacia las columnas anteriores.
+
+    O: el morro apunta al oeste.
+       El resto del barco va hacia las columnas siguientes.
+
+    Las filas y columnas empiezan en 1.
+    """
+
+    casillas = []
+
+    for i in range(longitud):
+
+        if orientacion == "N":
+            fila_actual = fila + i
+            columna_actual = columna
+
+        elif orientacion == "S":
+            fila_actual = fila - i
+            columna_actual = columna
+
+        elif orientacion == "E":
+            fila_actual = fila
+            columna_actual = columna - i
+
+        elif orientacion == "O":
+            fila_actual = fila
+            columna_actual = columna + i
+
+        else:
+            return []
+
+        if not (
+            1 <= fila_actual <= FILAS
+            and 1 <= columna_actual <= COLUMNAS
         ):
+            return []
 
-            sonido_barco.stop()
-            pantalla_actual = "juego"
+        casillas.append((fila_actual, columna_actual))
 
-            print("Partida preparada")
-            print("Enemigo:", nombre_enemigo)
-            print("Primer atacante:", primer_atacante)
+    return casillas
 
-    # -------------------------------------
-    # PANTALLA: JUEGO
-    # -------------------------------------
-    elif pantalla_actual == "juego":
 
-        pantalla.blit(fondo_juego, (0, 0))
+def colocar_barco():
+    global mensaje_tablero
 
-        # Aqui añadiremos el tablero y la logica de la partida.
+    # Comprobar si ya existe un barco de este tamaño.
+    for barco in barcos_colocados:
+        if barco["longitud"] == longitud_seleccionada:
+            mensaje_tablero = (
+                f"Ya has colocado el barco de tamaño {longitud_seleccionada}."
+            )
+            return False
 
-    # ACTUALIZAR VENTANA
-    pygame.display.flip()
+    try:
+        fila = int(texto_fila)
+        columna = int(texto_columna)
 
-    # CONTROLAR FPS
-    reloj.tick(fps_actual)
+    except ValueError:
+        mensaje_tablero = "Introduce una fila y columna válidas."
+        return False
 
-# CERRAR RECURSOS
-sonido_barco.stop()
-video.release()
-video_carga.release()
+    if not (1 <= fila <= FILAS):
+        mensaje_tablero = "La fila debe estar entre 1 y 10."
+        return False
 
-pygame.quit()
+    if not (1 <= columna <= COLUMNAS):
+        mensaje_tablero = "La columna debe estar entre 1 y 10."
+        return False
+
+    # El barco de una casilla no necesita orientación.
+    if longitud_seleccionada == 1:
+        orientacion = None
+        casillas = [(fila, columna)]
+
+    else:
+        orientacion = orientacion_seleccionada
+
+        casillas = obtener_casillas_barco(
+            fila,
+            columna,
+            longitud_seleccionada,
+            orientacion
+        )
+
+    if not casillas:
+        mensaje_tablero = (
+            "El barco se sale del tablero con esa orientación."
+        )
+        return False
+
+    # Comprobar que no ocupa casillas de otros barcos.
+    for casilla in casillas:
+        if casilla in casillas_ocupadas:
+            mensaje_tablero = (
+                "No puedes colocar barcos encima de otros."
+            )
+            return False
+
+    # Guardar el barco.
+    barco = {
+        "fila": fila,
+        "columna": columna,
+        "longitud": longitud_seleccionada,
+        "orientacion": orientacion,
+        "casillas": casillas
+    }
+
+    barcos_colocados.append(barco)
+
+    for casilla in casillas:
+        casillas_ocupadas.add(casilla)
+
+    mensaje_tablero = (
+        f"Barco de tamaño {longitud_seleccionada} colocado correctamente."
+    )
+
+    print("Barcos colocados:")
+
+    for barco_guardado in barcos_colocados:
+        print(barco_guardado)
+
+    return True
+
+def todos_los_barcos_colocados():
+
+    # Necesitamos exactamente estos cuatro tamaños.
+    tamanos_necesarios = {1, 2, 3, 4}
+
+    # Obtener los tamaños de los barcos colocados.
+    tamanos_colocados = {
+        barco["longitud"] for barco in barcos_colocados
+    }
+
+    # Solo empieza cuando están los cuatro tamaños.
+    return tamanos_colocados == tamanos_necesarios
+
+def transicion_a_partida():
+
+    # Reproducir el sonido del barco
+    if sonido_barco is not None:
+        sonido_barco.play()
+
+    # Esperar 2 segundos sin congelar la ventana
+    reloj = pygame.time.Clock()
+    tiempo_inicio = pygame.time.get_ticks()
+
+    while pygame.time.get_ticks() - tiempo_inicio < 2000:
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                raise SystemExit
+
+        reloj.tick(60)
+
+    # Pasar directamente a la pantalla de partida
+    pantalla_partida()
+
+def pantalla_partida():
+
+    reloj = pygame.time.Clock()
+
+    # Botones de ejemplo
+    boton_atacar = pygame.Rect(700, 400, 220, 60)
+    boton_salir_partida = pygame.Rect(700, 490, 220, 60)
+
+    ejecutando = True
+
+    while ejecutando:
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                ejecutando = False
+
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:
+
+                    if boton_atacar.collidepoint(evento.pos):
+                        print("Botón Atacar pulsado")
+
+                    elif boton_salir_partida.collidepoint(evento.pos):
+                        ejecutando = False
+
+        # Dibujar el fondo de la partida
+        if imagen_fondo_juego is not None:
+            pantalla.blit(
+                imagen_fondo_juego,
+                (0, 0)
+            )
+        else:
+            pantalla.fill(negro)
+
+        # Dibujar los botones
+        dibujar_boton(
+            boton_atacar,
+            "Atacar"
+        )
+
+        dibujar_boton(
+            boton_salir_partida,
+            "Salir"
+        )
+
+        pygame.display.flip()
+        reloj.tick(60)
+
+def limpiar_barcos():
+    global mensaje_tablero
+
+    barcos_colocados.clear()
+    casillas_ocupadas.clear()
+
+    mensaje_tablero = "Se han eliminado todos los barcos."
+
+
+# --------------------------------------------------
+# DIBUJAR TABLERO
+# --------------------------------------------------
+
+def dibujar_tablero():
+    # Números de las columnas.
+    # NÚMEROS DE LAS COLUMNAS DEBAJO DEL TABLERO
+    for columna in range(1, COLUMNAS + 1):
+        x = TABLERO_X + (columna - 1) * TAM_CELDA
+
+        dibujar_texto(
+            str(columna),
+            fuente_pequena,
+            blanco,
+            x + TAM_CELDA // 2,
+            TABLERO_Y + FILAS * TAM_CELDA + 15,
+            centrar=True
+        )
+
+    # Números de las filas.
+    for fila in range(1, FILAS + 1):
+        y = TABLERO_Y + (fila - 1) * TAM_CELDA
+
+        dibujar_texto(
+            str(fila),
+            fuente_pequena,
+            blanco,
+            TABLERO_X - 22,
+            y + TAM_CELDA // 2,
+            centrar=True
+        )
+
+    # Dibujar las casillas vacías.
+    for fila in range(1, FILAS + 1):
+        for columna in range(1, COLUMNAS + 1):
+
+            x = TABLERO_X + (columna - 1) * TAM_CELDA
+            y = TABLERO_Y + (fila - 1) * TAM_CELDA
+
+            rectangulo = pygame.Rect(
+                x,
+                y,
+                TAM_CELDA,
+                TAM_CELDA
+            )
+
+            pygame.draw.rect(
+                pantalla,
+                (20, 65, 85),
+                rectangulo
+            )
+
+            pygame.draw.rect(
+                pantalla,
+                (110, 160, 175),
+                rectangulo,
+                width=1
+            )
+
+    # Dibujar las imágenes de los barcos ya colocados.
+    for barco in barcos_colocados:
+        dibujar_imagen_barco(barco)
+
+    # Dibujar una previsualización del barco que se va a colocar.
+    dibujar_previsualizacion()
+
+
+# --------------------------------------------------
+# DIBUJAR IMAGEN DE UN BARCO
+# --------------------------------------------------
+
+def dibujar_imagen_barco(barco):
+    longitud = barco["longitud"]
+    orientacion = barco["orientacion"]
+
+    imagen = imagen_barcos.get(longitud)
+
+    # Si falta una imagen, mostramos un aviso en la terminal.
+    # No dibujamos cuadrados como sustituto.
+    if imagen is None:
+        return
+
+    # La imagen original debe tener el morro hacia la IZQUIERDA.
+    # A partir de esa orientación, la giramos según corresponda.
+    if longitud > 1:
+
+        if orientacion == "O":
+            imagen_girada = imagen
+
+        elif orientacion == "E":
+            imagen_girada = pygame.transform.rotate(
+                imagen,
+                180
+            )
+
+        elif orientacion == "N":
+            imagen_girada = pygame.transform.rotate(
+                imagen,
+                -90
+            )
+
+        elif orientacion == "S":
+            imagen_girada = pygame.transform.rotate(
+                imagen,
+                90
+            )
+
+        else:
+            imagen_girada = imagen
+
+    else:
+        imagen_girada = imagen
+
+    casillas = barco["casillas"]
+
+    filas_barco = [casilla[0] for casilla in casillas]
+    columnas_barco = [casilla[1] for casilla in casillas]
+
+    fila_min = min(filas_barco)
+    fila_max = max(filas_barco)
+
+    columna_min = min(columnas_barco)
+    columna_max = max(columnas_barco)
+
+    x = TABLERO_X + (columna_min - 1) * TAM_CELDA
+    y = TABLERO_Y + (fila_min - 1) * TAM_CELDA
+
+    ancho_barco = (
+        columna_max - columna_min + 1
+    ) * TAM_CELDA
+
+    alto_barco = (
+        fila_max - fila_min + 1
+    ) * TAM_CELDA
+
+    imagen_girada = pygame.transform.smoothscale(
+        imagen_girada,
+        (ancho_barco, alto_barco)
+    )
+
+    pantalla.blit(imagen_girada, (x, y))
+
+
+# --------------------------------------------------
+# PREVISUALIZAR EL BARCO ANTES DE COLOCARLO
+# --------------------------------------------------
+
+def dibujar_previsualizacion():
+    try:
+        fila = int(texto_fila)
+        columna = int(texto_columna)
+
+    except ValueError:
+        return
+
+    if not (
+        1 <= fila <= FILAS
+        and 1 <= columna <= COLUMNAS
+    ):
+        return
+
+    if longitud_seleccionada == 1:
+        casillas = [(fila, columna)]
+        orientacion = None
+
+    else:
+        orientacion = orientacion_seleccionada
+
+        casillas = obtener_casillas_barco(
+            fila,
+            columna,
+            longitud_seleccionada,
+            orientacion
+        )
+
+    if not casillas:
+        return
+
+    # No mostrar la previsualización si invade un barco colocado.
+    if any(casilla in casillas_ocupadas for casilla in casillas):
+        return
+
+    barco_temporal = {
+        "fila": fila,
+        "columna": columna,
+        "longitud": longitud_seleccionada,
+        "orientacion": orientacion,
+        "casillas": casillas
+    }
+
+    imagen = imagen_barcos.get(longitud_seleccionada)
+
+    if imagen is None:
+        return
+
+    # Transparencia para distinguir la previsualización.
+    imagen_temporal = imagen.copy()
+    imagen_temporal.set_alpha(140)
+
+    if longitud_seleccionada > 1:
+
+        if orientacion == "O":
+            imagen_girada = imagen_temporal
+
+        elif orientacion == "E":
+            imagen_girada = pygame.transform.rotate(
+                imagen_temporal,
+                180
+            )
+
+        elif orientacion == "N":
+            imagen_girada = pygame.transform.rotate(
+                imagen_temporal,
+                -90
+            )
+
+        else:  # Sur
+            imagen_girada = pygame.transform.rotate(
+                imagen_temporal,
+                90
+            )
+
+    else:
+        imagen_girada = imagen_temporal
+
+    filas_barco = [casilla[0] for casilla in casillas]
+    columnas_barco = [casilla[1] for casilla in casillas]
+
+    fila_min = min(filas_barco)
+    fila_max = max(filas_barco)
+
+    columna_min = min(columnas_barco)
+    columna_max = max(columnas_barco)
+
+    x = TABLERO_X + (columna_min - 1) * TAM_CELDA
+    y = TABLERO_Y + (fila_min - 1) * TAM_CELDA
+
+    ancho_barco = (
+        columna_max - columna_min + 1
+    ) * TAM_CELDA
+
+    alto_barco = (
+        fila_max - fila_min + 1
+    ) * TAM_CELDA
+
+    imagen_girada = pygame.transform.smoothscale(
+        imagen_girada,
+        (ancho_barco, alto_barco)
+    )
+
+    pantalla.blit(imagen_girada, (x, y))
+
+
+# --------------------------------------------------
+# DIBUJAR LOS CONTROLES DE COLOCACIÓN
+# --------------------------------------------------
+
+# --------------------------------------------------
+# DIBUJAR LOS CONTROLES DE COLOCACIÓN
+# --------------------------------------------------
+
+def dibujar_controles():
+
+    # LONGITUD DEL BARCO
+    dibujar_texto(
+        "Longitud:",
+        fuente_normal,
+        blanco,
+        30,
+        165
+    )
+
+    botones_longitud = [
+        (boton_longitud_1, "1", 1),
+        (boton_longitud_2, "2", 2),
+        (boton_longitud_3, "3", 3),
+        (boton_longitud_4, "4", 4)
+    ]
+
+    for rectangulo, texto, longitud in botones_longitud:
+        dibujar_boton(
+            rectangulo,
+            texto,
+            activo=(longitud_seleccionada == longitud)
+        )
+
+    # ORIENTACIÓN DEL MORRO
+    dibujar_texto(
+        "Orientación del morro:",
+        fuente_pequena,
+        blanco,
+        30,
+        225
+    )
+
+    orientaciones = [
+        (boton_norte, "N", "N"),
+        (boton_sur, "S", "S"),
+        (boton_este, "E", "E"),
+        (boton_oeste, "O", "O")
+    ]
+
+    orientacion_activa = longitud_seleccionada > 1
+
+    for rectangulo, texto, orientacion in orientaciones:
+        dibujar_boton(
+            rectangulo,
+            texto,
+            activo=(
+                orientacion_activa
+                and orientacion_seleccionada == orientacion
+            )
+        )
+
+    # FILA Y COLUMNA, JUSTO DEBAJO DE LA ORIENTACIÓN
+    dibujar_texto(
+        "Fila (1-10):",
+        fuente_pequena,
+        blanco,
+        campo_fila.x,
+        campo_fila.y - 25
+    )
+
+    dibujar_texto(
+        "Columna (1-10):",
+        fuente_pequena,
+        blanco,
+        campo_columna.x - 5,
+        campo_columna.y - 25
+    )
+
+    # Campo de fila
+    pygame.draw.rect(
+        pantalla,
+        blanco,
+        campo_fila,
+        border_radius=5
+    )
+
+    pygame.draw.rect(
+        pantalla,
+        verde_claro if campo_activo == "fila" else gris,
+        campo_fila,
+        width=2,
+        border_radius=5
+    )
+
+    # Campo de columna
+    pygame.draw.rect(
+        pantalla,
+        blanco,
+        campo_columna,
+        border_radius=5
+    )
+
+    pygame.draw.rect(
+        pantalla,
+        verde_claro if campo_activo == "columna" else gris,
+        campo_columna,
+        width=2,
+        border_radius=5
+    )
+
+    # Mostrar los números introducidos
+    dibujar_texto(
+        texto_fila,
+        fuente_normal,
+        negro,
+        campo_fila.x + 10,
+        campo_fila.y + 5
+    )
+
+    dibujar_texto(
+        texto_columna,
+        fuente_normal,
+        negro,
+        campo_columna.x + 10,
+        campo_columna.y + 5
+    )
+
+    # BOTONES DE ACCIÓN
+    dibujar_boton(
+        boton_colocar,
+        "Colocar barco"
+    )
+
+    dibujar_boton(
+        boton_limpiar,
+        "Eliminar todos"
+    )
+
+    # MENSAJE DE ESTADO
+    if mensaje_tablero:
+        dibujar_texto(
+            mensaje_tablero,
+            fuente_pequena,
+            blanco,
+            25,
+            570
+        )
+
+
+# --------------------------------------------------
+# PANTALLA DE JUEGO
+# --------------------------------------------------
+
+def pantalla_juego():
+    global longitud_seleccionada
+    global orientacion_seleccionada
+    global texto_fila, texto_columna
+    global campo_activo, mensaje_tablero
+
+    # Empezar con el tablero vacío.
+    barcos_colocados.clear()
+    casillas_ocupadas.clear()
+
+    longitud_seleccionada = 2
+    orientacion_seleccionada = "N"
+
+    texto_fila = "1"
+    texto_columna = "1"
+
+    campo_activo = "fila"
+    mensaje_tablero = ""
+
+    while True:
+
+        # Mostrar el fondo original sin oscurecerlo.
+        if imagen_fondo_colocacion is not None:
+            pantalla.blit(imagen_fondo_colocacion, (0, 0))
+        else:
+            pantalla.fill(negro)
+
+        dibujar_controles()
+        dibujar_tablero()
+
+        dibujar_texto(
+            f"Enemigo: {nombre_enemigo}",
+            fuente_pequena,
+            blanco,
+            740,
+            20
+        )
+
+        dibujar_texto(
+            f"Primer atacante: {primer_atacante}",
+            fuente_pequena,
+            blanco,
+            740,
+            45
+        )
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            # --------------------------------------
+            # CLICS DEL RATÓN
+            # --------------------------------------
+
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:
+
+                    if campo_fila.collidepoint(evento.pos):
+                        campo_activo = "fila"
+
+                    elif campo_columna.collidepoint(evento.pos):
+                        campo_activo = "columna"
+
+                    # Seleccionar longitud 1.
+                    elif boton_longitud_1.collidepoint(evento.pos):
+                        longitud_seleccionada = 1
+                        mensaje_tablero = (
+                            "Barco de 1 casilla: orientación desactivada."
+                        )
+
+                    # Seleccionar longitud 2.
+                    elif boton_longitud_2.collidepoint(evento.pos):
+                        longitud_seleccionada = 2
+                        mensaje_tablero = ""
+
+                    # Seleccionar longitud 3.
+                    elif boton_longitud_3.collidepoint(evento.pos):
+                        longitud_seleccionada = 3
+                        mensaje_tablero = ""
+
+                    # Seleccionar longitud 4.
+                    elif boton_longitud_4.collidepoint(evento.pos):
+                        longitud_seleccionada = 4
+                        mensaje_tablero = ""
+
+                    # Seleccionar orientación.
+                    # Solo funciona para barcos de longitud mayor que 1.
+                    elif longitud_seleccionada > 1:
+
+                        if boton_norte.collidepoint(evento.pos):
+                            orientacion_seleccionada = "N"
+
+                        elif boton_sur.collidepoint(evento.pos):
+                            orientacion_seleccionada = "S"
+
+                        elif boton_este.collidepoint(evento.pos):
+                            orientacion_seleccionada = "E"
+
+                        elif boton_oeste.collidepoint(evento.pos):
+                            orientacion_seleccionada = "O"
+
+                    # --------------------------------------
+                    # COLOCAR BARCO Y COMPROBAR SI ESTÁN TODOS
+                    # --------------------------------------
+
+                    if boton_colocar.collidepoint(evento.pos):
+
+                        barco_colocado = colocar_barco()
+
+                        # Solo comprobamos el inicio si el barco se ha colocado correctamente.
+                        if barco_colocado and todos_los_barcos_colocados():
+                            transicion_a_partida()
+                            return
+
+                    # Limpiar los barcos colocados.
+                    elif boton_limpiar.collidepoint(evento.pos):
+                        limpiar_barcos()
+
+                    reproducir_sonido_boton()
+
+            # --------------------------------------
+            # ESCRIBIR FILA Y COLUMNA
+            # --------------------------------------
+
+            if evento.type == pygame.KEYDOWN:
+
+                if campo_activo == "fila":
+
+                    if evento.key == pygame.K_BACKSPACE:
+                        texto_fila = texto_fila[:-1]
+
+                    elif evento.unicode.isdigit():
+                        if len(texto_fila) < 2:
+                            texto_fila += evento.unicode
+
+                    elif evento.key == pygame.K_TAB:
+                        campo_activo = "columna"
+
+                elif campo_activo == "columna":
+
+                    if evento.key == pygame.K_BACKSPACE:
+                        texto_columna = texto_columna[:-1]
+
+                    elif evento.unicode.isdigit():
+                        if len(texto_columna) < 2:
+                            texto_columna += evento.unicode
+
+                    elif evento.key == pygame.K_TAB:
+                        campo_activo = "fila"
+
+        reloj.tick(60)
+
+# --------------------------------------------------
+# INICIAR EL PROGRAMA
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    pantalla_menu()
