@@ -735,8 +735,8 @@ def pantalla_partida():
     reloj = pygame.time.Clock()
 
     # Botones de ejemplo
-    boton_atacar = pygame.Rect(700, 400, 220, 60)
-    boton_salir_partida = pygame.Rect(700, 490, 220, 60)
+    boton_atacar = pygame.Rect(40, 200, 220, 60)
+    boton_salir_partida = pygame.Rect(40, 290, 220, 60)
 
     ejecutando = True
 
