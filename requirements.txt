@@ -1,0 +1,5 @@
+# Dependencias del proyecto Hundir la Flota (DAM2 - Acceso a Datos)
+# Nota: Se usa pygame-ce (Community Edition) para máxima compatibilidad con Python 3.10 - 3.14+
+pygame-ce>=2.5.0
+opencv-python>=4.8.0
+numpy>=1.24.0

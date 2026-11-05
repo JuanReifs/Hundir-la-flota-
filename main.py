@@ -28,8 +28,13 @@ import time
 try:
     import pygame
 except ImportError:
-    print("Pygame no encontrado en el entorno actual.")
-    print("Para instalarlo ejecuta: uv pip install pygame-ce opencv-python")
+    print("\n" + "=" * 65)
+    print(" [!] ERROR: Pygame no está instalado en este entorno de Python.")
+    print(" Para instalar las dependencias necesarias ejecuta en la terminal:")
+    print("     pip install -r requirements.txt")
+    print(" O si usas pip directamente:")
+    print("     pip install pygame-ce opencv-python")
+    print("=" * 65 + "\n")
     sys.exit(1)
 
 try:
@@ -59,15 +64,28 @@ from flota import Flota
 from partida import Partida, JuegoError, TurnoIncorrecto, PartidaTerminada
 
 
+# Directorio raíz del proyecto (donde reside main.py)
+DIR_BASE = os.path.dirname(os.path.abspath(__file__))
+
 # -----------------------------------------------------------------------------
-# 1. LOCALIZADOR ROBUSTO DE RECURSOS (insensible a mayúsculas/minúsculas)
+# 1. LOCALIZADOR ROBUSTO DE RECURSOS (insensible a mayúsculas/minúsculas y rutas relativas)
 # -----------------------------------------------------------------------------
 def encontrar_recurso(ruta_relativa):
-    """Busca un archivo ignorando mayúsculas/minúsculas para compatibilidad en Linux."""
+    """
+    Busca un archivo ignorando mayúsculas/minúsculas y asegurando que la ruta
+    se resuelva relativa al directorio raíz del proyecto (DIR_BASE).
+    Esto permite ejecutar el juego desde cualquier IDE, terminal o carpeta.
+    """
+    # 1. Intentar ruta directa relativa a DIR_BASE
+    candidato = os.path.join(DIR_BASE, ruta_relativa)
+    if os.path.exists(candidato):
+        return candidato
     if os.path.exists(ruta_relativa):
-        return ruta_relativa
+        return os.path.abspath(ruta_relativa)
+
+    # 2. Búsqueda insensible a mayúsculas/minúsculas recorriendo subdirectorios
     partes = os.path.normpath(ruta_relativa).split(os.sep)
-    actual = "."
+    actual = DIR_BASE
     for parte in partes:
         if not os.path.exists(actual):
             return None

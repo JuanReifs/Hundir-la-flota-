@@ -1,5 +1,10 @@
 [project]
 name = "hundirlaflota"
 version = "0.1.0"
-requires-python = ">=3.14"
-dependencies = []
+description = "Proyecto Final Hundir la Flota - DAM2 Acceso a Datos"
+requires-python = ">=3.10"
+dependencies = [
+    "pygame-ce>=2.5.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+]
