@@ -1,0 +1,671 @@
+{
+    "nombre_jugador": "Comandante",
+    "nombre_rival": "Almirante Rival",
+    "tamano": 10,
+    "turno": "rival",
+    "repite_si_acierta": false,
+    "forzar_turnos": true,
+    "recibidos": [
+        [
+            3,
+            2
+        ],
+        [
+            4,
+            6
+        ],
+        [
+            5,
+            4
+        ],
+        [
+            6,
+            6
+        ]
+    ],
+    "tablero_ataques": {
+        "tamano": 10,
+        "flota": {
+            "4": 1,
+            "3": 2,
+            "2": 3,
+            "1": 4
+        },
+        "barcos_pueden_tocarse": false,
+        "casillas": [
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                3,
+                3,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        ],
+        "hundidos": [
+            5
+        ]
+    },
+    "ataques": {
+        "tamano": 10,
+        "flota": {
+            "4": 1,
+            "3": 2,
+            "2": 3,
+            "1": 4
+        },
+        "barcos_pueden_tocarse": false,
+        "casillas": [
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                3,
+                3,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        ],
+        "hundidos": [
+            5
+        ]
+    },
+    "historial": [
+        {
+            "numero": 1,
+            "tipo": "disparo",
+            "fila": 4,
+            "col": 5,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 2,
+            "tipo": "recibido",
+            "fila": 3,
+            "col": 2,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 3,
+            "tipo": "disparo",
+            "fila": 4,
+            "col": 4,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 4,
+            "tipo": "recibido",
+            "fila": 5,
+            "col": 4,
+            "resultado": "agua"
+        },
+        {
+            "numero": 5,
+            "tipo": "disparo",
+            "fila": 4,
+            "col": 6,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 6,
+            "tipo": "recibido",
+            "fila": 6,
+            "col": 6,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 7,
+            "tipo": "disparo",
+            "fila": 6,
+            "col": 4,
+            "resultado": "tocado"
+        },
+        {
+            "numero": 8,
+            "tipo": "recibido",
+            "fila": 4,
+            "col": 6,
+            "resultado": "hundido"
+        },
+        {
+            "numero": 9,
+            "tipo": "disparo",
+            "fila": 5,
+            "col": 4,
+            "resultado": "hundido"
+        }
+    ],
+    "tablero_propio": {
+        "tamano": 10,
+        "configuracion": {
+            "4": 1,
+            "3": 2,
+            "2": 3,
+            "1": 4
+        },
+        "barcos": [
+            {
+                "tamano": 4,
+                "coordenadas": [
+                    [
+                        8,
+                        4
+                    ],
+                    [
+                        8,
+                        5
+                    ],
+                    [
+                        8,
+                        6
+                    ],
+                    [
+                        8,
+                        7
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 3,
+                "coordenadas": [
+                    [
+                        0,
+                        6
+                    ],
+                    [
+                        1,
+                        6
+                    ],
+                    [
+                        2,
+                        6
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 3,
+                "coordenadas": [
+                    [
+                        1,
+                        8
+                    ],
+                    [
+                        2,
+                        8
+                    ],
+                    [
+                        3,
+                        8
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 2,
+                "coordenadas": [
+                    [
+                        7,
+                        0
+                    ],
+                    [
+                        7,
+                        1
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 2,
+                "coordenadas": [
+                    [
+                        3,
+                        2
+                    ],
+                    [
+                        3,
+                        3
+                    ]
+                ],
+                "impactos": [
+                    [
+                        3,
+                        2
+                    ]
+                ]
+            },
+            {
+                "tamano": 2,
+                "coordenadas": [
+                    [
+                        6,
+                        6
+                    ],
+                    [
+                        6,
+                        7
+                    ]
+                ],
+                "impactos": [
+                    [
+                        6,
+                        6
+                    ]
+                ]
+            },
+            {
+                "tamano": 1,
+                "coordenadas": [
+                    [
+                        0,
+                        8
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 1,
+                "coordenadas": [
+                    [
+                        2,
+                        0
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 1,
+                "coordenadas": [
+                    [
+                        6,
+                        3
+                    ]
+                ],
+                "impactos": []
+            },
+            {
+                "tamano": 1,
+                "coordenadas": [
+                    [
+                        4,
+                        6
+                    ]
+                ],
+                "impactos": [
+                    [
+                        4,
+                        6
+                    ]
+                ]
+            }
+        ],
+        "tablero": [
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                1,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                3,
+                0
+            ],
+            [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+                3,
+                0
+            ],
+            [
+                0,
+                0,
+                2,
+                2,
+                0,
+                0,
+                0,
+                0,
+                3,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                2,
+                2,
+                0,
+                0
+            ],
+            [
+                2,
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        ],
+        "disparos_recibidos": [
+            {
+                "fila": 3,
+                "columna": 2,
+                "resultado": "tocado"
+            },
+            {
+                "fila": 5,
+                "columna": 4,
+                "resultado": "agua"
+            },
+            {
+                "fila": 6,
+                "columna": 6,
+                "resultado": "tocado"
+            },
+            {
+                "fila": 4,
+                "columna": 6,
+                "resultado": "hundido"
+            }
+        ]
+    }
+}
